@@ -1,0 +1,7 @@
+dataset: dinggd/breakfast
+dataset_path: ./data/.cache_dir/
+output_path: ./data/predictions/
+split_type: train
+split_name: split1
+streaming: false
+mode: offline   #online|offline

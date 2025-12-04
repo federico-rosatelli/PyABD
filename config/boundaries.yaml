@@ -1,0 +1,2 @@
+kernel_size: 15   # (2k + 1) || k = 6.9
+window_size: 15   # α · (N/K) == (2k + 1)

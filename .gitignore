@@ -1,0 +1,6 @@
+*.png
+*.log
+!logs/dev.log
+data/*
+!data/README.md
+__pycache__
