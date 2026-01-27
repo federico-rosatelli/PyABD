@@ -17,6 +17,7 @@ def extract_segment_features(features:torch.Tensor, boundaries:torch.Tensor):
         b_list.append(N - 1)
         
     seg_feats = []
+    seg_sizes = []
     start_idx = 0
     
     for end_idx in b_list:
@@ -26,9 +27,11 @@ def extract_segment_features(features:torch.Tensor, boundaries:torch.Tensor):
             
             mean_feat = torch.mean(segment, dim=0)
             seg_feats.append(mean_feat)
+            seg_sizes.append(segment.shape[0])
         else:
             seg_feats.append(torch.zeros(features.shape[1]))
-            
+            seg_sizes.append(0)
+
         start_idx = end_idx + 1
         
     if len(seg_feats) > 0:
@@ -38,7 +41,7 @@ def extract_segment_features(features:torch.Tensor, boundaries:torch.Tensor):
 
     segment_indices = [[i] for i in range(len(seg_feats))]
     
-    return segment_features, segment_indices
+    return segment_features, segment_indices, seg_sizes
 
 def compute_similarity_matrix(features:torch.Tensor):
     features_norm = F.normalize(features, p=2, dim=1)
@@ -46,7 +49,7 @@ def compute_similarity_matrix(features:torch.Tensor):
     return similarity_matrix
 
 def refine_segments(features:torch.Tensor, boundaries:torch.Tensor, K:int):
-    current_features, cluster_map = extract_segment_features(features, boundaries)
+    current_features, cluster_map, current_sizes = extract_segment_features(features, boundaries)
     
     num_current_clusters = current_features.shape[0]
     if num_current_clusters <= K:
@@ -65,7 +68,20 @@ def refine_segments(features:torch.Tensor, boundaries:torch.Tensor, K:int):
         
         idx1, idx2 = sorted((row, col))
         
-        new_feat = (current_features[idx1] + current_features[idx2]) / 2.0
+        #new_feat = (current_features[idx1] + current_features[idx2]) / 2.0
+
+        size1 = current_sizes[idx1]
+        size2 = current_sizes[idx2]
+        total_size = size1 + size2
+        
+        feat1 = current_features[idx1]
+        feat2 = current_features[idx2]
+        
+        if total_size > 0:
+            new_feat = (feat1 * size1 + feat2 * size2) / total_size
+        else:
+            new_feat = (feat1 + feat2) / 2.0
+
         new_feat = new_feat.unsqueeze(0)
         
         keep_indices = [i for i in range(num_current_clusters) if i != idx1 and i != idx2]
@@ -83,6 +99,11 @@ def refine_segments(features:torch.Tensor, boundaries:torch.Tensor, K:int):
         del cluster_map[idx1]
         
         cluster_map.append(merged_indices)
+
+        del current_sizes[idx2]
+        del current_sizes[idx1]
+        
+        current_sizes.append(total_size)
         
         num_current_clusters -= 1
         
