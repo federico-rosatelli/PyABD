@@ -30,6 +30,7 @@ def run_offline_mode(dataset_name:str, log=False):
 
     history = {
         "video_id": [],
+        "boundaries": [],
         "MoF": [],
         "F1": []
     }
@@ -84,6 +85,7 @@ def run_offline_mode(dataset_name:str, log=False):
             )
         
         history["video_id"].append(video_id)
+        history["boundaries"].append(boundaries)
         history["MoF"].append(mof)
         history["F1"].append(f1)
     

@@ -11,7 +11,7 @@ def main(parsed_args):
     if parsed_args.mode == "offline":
         #offline_mode.run_offline_mode("breakfast")
         history = offline_mode.run_offline_mode(parsed_args.dataset, log=True)
-        config.saveCSV("history.csv", history)
+        config.saveCSV(f"history_{parsed_args.dataset}.csv", history)
     
     if parsed_args.mode == "online":
         online_mode.run_online_mode(parsed_args.dataset, log=True)
