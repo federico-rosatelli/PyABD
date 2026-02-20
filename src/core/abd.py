@@ -27,6 +27,14 @@ def calculate_similarity(features:torch.Tensor):
     return similarity
 
 def detect_boundaries(video_feature:torch.Tensor, kernel_size:int=15, window_size:int=15):
+    """
+    Detect action boundaries in a video feature sequence for offline mode.
+    
+    Args:
+        video_feature (torch.Tensor): The input video features of shape (T, D).
+        kernel_size (int): The size of the smoothing kernel.
+        window_size (int): The size of the local window for boundary detection.
+    """
 
     
     features = smooth_features(video_feature, kernel_size)

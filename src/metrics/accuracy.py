@@ -37,7 +37,7 @@ def calculate_hungerian_mapping(preds,targets):
 
 def calculate_f1(preds, targets):
     
-    return f1_score(targets, preds, average="macro")
+    return f1_score(targets, preds, average="weighted")
 
 
     

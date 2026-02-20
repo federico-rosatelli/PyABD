@@ -1,0 +1,28 @@
+datasets:
+  breakfast:
+    name: "Breakfast Actions Dataset"
+    dataset: dinggd/breakfast
+    dataset_path: ./data/.cache_dir/
+    output_path: ./data/predictions/
+    split_type: train
+    split_name: split1
+    streaming: false
+    mode: offline   #online|offline
+  
+  50salads:
+    name: "50 Salads"
+    dataset: fedecvg/50salads-idt
+    dataset_path: ./data/50Salads_IDT/
+    output_path: ./data/predictions/
+    split_type: train
+    streaming: false
+    mode: offline   #online|offline
+
+  # gtea:
+  #   name: "GTEA"
+  #   num_classes: 11
+  #   fps: 15
+  #   feature_dim: 2048
+  #   config_path: "config/gtea.yaml"
+
+default_dataset: "breakfast"
