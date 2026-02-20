@@ -2,11 +2,22 @@ import warnings
 warnings.filterwarnings("ignore")
 import argparse
 import src.modes.offline_mode as offline_mode
+import src.modes.online_mode as online_mode
+from src.utils import config
+
+
 
 def main(parsed_args):
     if parsed_args.mode == "offline":
         #offline_mode.run_offline_mode("breakfast")
-        offline_mode.run_offline_mode(parsed_args.dataset, log=True)
+        history = offline_mode.run_offline_mode(parsed_args.dataset, log=True)
+        config.saveCSV("history.csv", history)
+    
+    if parsed_args.mode == "online":
+        online_mode.run_online_mode(parsed_args.dataset, log=True)
+    
+        
+
 
 
 if __name__ == "__main__":
