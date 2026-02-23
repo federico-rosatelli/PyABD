@@ -9,11 +9,8 @@ from src.utils import config
 
 def main(parsed_args):
     if parsed_args.mode == "offline":
-        #offline_mode.run_offline_mode("breakfast")
-        history = offline_mode.run_offline_mode("breakfast", log=True)
-        config.saveCSV("history_breakfast.csv", history)
-        history = offline_mode.run_offline_mode("50salads", log=True)
-        config.saveCSV("history_50salads.csv", history)
+        history = offline_mode.run_offline_mode(parsed_args.dataset, log=True)
+        config.saveCSV(f"history_{parsed_args.dataset}.csv", history)
     
     if parsed_args.mode == "online":
         online_mode.run_online_mode(parsed_args.dataset, log=True)

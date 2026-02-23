@@ -1,3 +1,5 @@
+import math
+
 from tqdm import tqdm
 from src.utils import config
 from src.utils.data_loader import BreakfastDataset, SaladsDataset
@@ -22,6 +24,10 @@ def run_offline_mode(dataset_name:str, log=False):
     
     bn_conf = config.getConfigYAML("config/boundaries.yaml")
 
+    kernel_size = bn_conf['kernel_size']
+    window_size = bn_conf['window_size']
+
+
     if log:
         logger  = config.getLogger("production")
     K = bn_conf['thrashold_classes']
@@ -45,16 +51,24 @@ def run_offline_mode(dataset_name:str, log=False):
         video_feature = torch.tensor(features, dtype=torch.float32)
         target_len = video_feature.shape[0]
         
-        boundaries, similarity = abd.detect_boundaries(video_feature, bn_conf["kernel_size"], bn_conf["window_size"])
+        boundaries, similarity = abd.detect_boundaries(video_feature, kernel_size, window_size)
         
         similarity = torch.cat([similarity, similarity[-1].unsqueeze(0)])
+        
+        k_log = int(math.log(len(boundaries)+1))
+
+        k_log = (k_log//2 * 1) if k_log >= K//2 else (k_log//2 * -1)
+        
+        k_def = K + k_log
+        
+        
 
         if len(boundaries) == 0:
             pred = torch.zeros(target_len, dtype=torch.long)
-        elif len(boundaries) <= K:
+        elif len(boundaries) <= k_def:
             pred = refinement.refine_segments(video_feature, boundaries, len(boundaries))
         else:
-            pred = refinement.refine_segments(video_feature, boundaries, K)
+            pred = refinement.refine_segments(video_feature, boundaries, k_def)
 
         
 
@@ -85,9 +99,13 @@ def run_offline_mode(dataset_name:str, log=False):
             )
         
         history["video_id"].append(video_id)
-        history["boundaries"].append(boundaries)
+        history["boundaries"].append((target_len,len(pred)))
         history["MoF"].append(mof)
         history["F1"].append(f1)
+
+    print("\n=== Offline ABD — Dataset-level results ===")
+    print(f"  Mean MoF : {np.mean(history['MoF'])*100:.2f}%")
+    print(f"  Mean F1  : {np.mean(history['F1'])*100:.2f}%")
     
     return history
         
