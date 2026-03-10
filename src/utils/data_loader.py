@@ -17,6 +17,7 @@ class BreakfastDataset:
                  split_name:str, 
                  streaming:bool, 
                  mode:str, 
+                 threshold_classes:int,
                  writer_batch_size:int=1):
         
         self.name = name
@@ -28,6 +29,7 @@ class BreakfastDataset:
         self.writer_batch_size = writer_batch_size
         self.streaming = streaming
         self.mode = mode
+        self.threshold_classes = threshold_classes
         self.dataset = self._load_br_dataset()
         pass
 
@@ -54,11 +56,11 @@ class BreakfastDataset:
 
 
 class SaladsDataset:
-    def __init__(self,name, dataset_path, sample_rate):
+    def __init__(self,name, dataset_path, threshold_classes: int):
         
         self.name = name
         self.dataset_path = dataset_path
-        self.sample_rate = sample_rate
+        self.threshold_classes = threshold_classes
         self.action_dict = self._get_action_dict()
         self.features, self.labels, self.video_ids = self._load_salads_dataset()
         pass
