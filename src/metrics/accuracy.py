@@ -5,34 +5,44 @@ from sklearn.metrics import f1_score
 
 
 def calculate_mof(preds, targets):
-    
-    mapped_pred = np.sum(preds == targets)
 
-    total = len(targets)
     
-    mof = mapped_pred / total
-    return mof
-
-
-def calculate_hungerian_mapping(preds,targets):
-    
-    if isinstance(preds, torch.Tensor):
-        preds = preds.cpu().numpy()
-    if isinstance(targets, torch.Tensor):
-        targets = targets.cpu().numpy()
-        
     if len(preds) == 0:
-        return preds
+        return 0, preds
 
     mapping = get_hungarian_mapping(preds, targets)
-    
-    mapped_preds = np.copy(preds)
 
+    mapped_preds = np.copy(preds)
     for p_id, t_id in mapping.items():
         mapped_preds[preds == p_id] = t_id
+
+    mof = np.sum(mapped_preds == targets) / len(targets)
+    return mof, mapped_preds
+
+
+
+class GlobalMoF:
+
+    def __init__(self):
+        self.total_correct = 0
+        self.total_frames  = 0
+
+    def update(self, mapped_preds, targets):
         
-    return mapped_preds
-    
+        mapped_preds = mapped_preds.cpu().numpy()
+        targets = targets.cpu().numpy()
+
+        self.total_correct += int(np.sum(mapped_preds == targets))
+        self.total_frames  += len(targets)
+
+    def compute(self) -> float:
+        if self.total_frames == 0:
+            return 0.0
+        return self.total_correct / self.total_frames
+
+    def reset(self):
+        self.total_correct = 0
+        self.total_frames  = 0
 
 
 def calculate_f1(preds, targets):

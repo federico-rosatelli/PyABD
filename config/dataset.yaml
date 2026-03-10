@@ -8,6 +8,15 @@ datasets:
     split_name: split1
     streaming: false
     mode: offline   #online|offline
+    boundaries:
+      eval:
+        kernel_size: 15
+        window_size: 15
+        threshold_classes: 6
+      mid:
+        kernel_size: 15
+        window_size: 15
+        threshold_classes: 6
   
   50salads:
     name: "50 Salads"
@@ -17,6 +26,16 @@ datasets:
     split_type: train
     streaming: false
     mode: offline   #online|offline
+    boundaries:
+      eval:
+        kernel_size: 333
+        window_size: 333
+        threshold_classes: 12
+      mid:
+        kernel_size: 211
+        window_size: 211
+        threshold_classes: 19
+    
 
   # gtea:
   #   name: "GTEA"

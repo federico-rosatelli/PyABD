@@ -9,7 +9,7 @@ from src.utils import config
 
 def main(parsed_args):
     if parsed_args.mode == "offline":
-        history = offline_mode.run_offline_mode(parsed_args.dataset, log=True)
+        history = offline_mode.run_offline_mode(parsed_args.dataset,parsed_args.boundaries, log=False)
         config.saveCSV(f"history_{parsed_args.dataset}.csv", history)
     
     if parsed_args.mode == "online":
@@ -23,6 +23,7 @@ if __name__ == "__main__":
     args = argparse.ArgumentParser(description="PyABD: Action Boundary Detection Framework")
     args.add_argument("--mode", type=str, default="offline", help="Mode to run: offline or online")
     args.add_argument("--dataset", type=str, default="breakfast", help="Dataset to use: breakfast, 50salads")
+    args.add_argument("--boundaries", type=str, default="eval", help="Boundaries to use: eval, mid")
     parsed_args = args.parse_args() 
 
     main(parsed_args)

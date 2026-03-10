@@ -1,10 +1,9 @@
 import math
-
 from tqdm import tqdm
 from src.utils import config
 from src.utils.data_loader import BreakfastDataset, SaladsDataset
 from src.core import abd, refinement
-from src.metrics import accuracy
+from src.metrics.accuracy import calculate_mof, GlobalMoF, calculate_f1
 from scipy.ndimage import zoom
 import torch
 import numpy as np
@@ -12,7 +11,7 @@ from src.utils.visualization import plot_abd_results
 import time
 
 
-def run_offline_mode(dataset_name:str, log=False):
+def run_offline_mode(dataset_name:str, boundaries_type:str, log=False):
 
     dataset_conf = config.getConfigYAML("config/dataset.yaml")
     if dataset_name == "breakfast":
@@ -20,17 +19,17 @@ def run_offline_mode(dataset_name:str, log=False):
         dataset = BreakfastDataset(**br_conf).getDataset()
     elif dataset_name == "50salads":
         br_conf = dataset_conf["datasets"]['50salads']
-        dataset = SaladsDataset(br_conf['name'], br_conf['dataset_path'], 1)
+        dataset = SaladsDataset(br_conf['name'], br_conf['dataset_path'], br_conf["boundaries"][boundaries_type]['threshold_classes'])
     
-    bn_conf = config.getConfigYAML("config/boundaries.yaml")
+    #bn_conf = config.getConfigYAML("config/boundaries.yaml")
 
-    kernel_size = bn_conf['kernel_size']
-    window_size = bn_conf['window_size']
+    kernel_size = br_conf["boundaries"][boundaries_type]['kernel_size']
+    window_size = br_conf["boundaries"][boundaries_type]['window_size']
 
 
     if log:
         logger  = config.getLogger("production")
-    K = bn_conf['thrashold_classes']
+    K = dataset_conf["datasets"][dataset_name]["boundaries"][boundaries_type]['threshold_classes']
     print(f"Running offline mode on {dataset_name} dataset with K={K} classes...")
     tq = tqdm(dataset, desc=f"Processing dataset {dataset_name}", unit="video")
 
@@ -40,6 +39,8 @@ def run_offline_mode(dataset_name:str, log=False):
         "MoF": [],
         "F1": []
     }
+
+    global_mof = GlobalMoF()
 
     for item in tq:
         time_s = time.time()
@@ -60,7 +61,7 @@ def run_offline_mode(dataset_name:str, log=False):
         k_log = (k_log//2 * 1) if k_log >= K//2 else (k_log//2 * -1)
         
         k_def = K + k_log
-        
+
         
 
         if len(boundaries) == 0:
@@ -81,30 +82,31 @@ def run_offline_mode(dataset_name:str, log=False):
             gt_arr = zoom(gt_arr, target_len / len(gt_arr), order=0)
 
 
-        mapped_preds = accuracy.calculate_hungerian_mapping(preds_cut, gt_arr)
-        mof = accuracy.calculate_mof(mapped_preds, gt_arr)
-        f1 = accuracy.calculate_f1(mapped_preds,gt_arr)
+        mof_video, remapped_preds = calculate_mof(preds_cut, gt_arr)
+        global_mof.update(remapped_preds, gt_arr)
+        f1 = calculate_f1(remapped_preds, gt_arr)
 
         
         if log:
-            logger.info(f"Video {video_id} | Accuracy (MoF): {mof*100:.2f}% | Accuracy (F1): {f1*100:.2f}% | Time: {(time.time()-time_s):.2f}s")
-        tq.set_postfix_str(f"MoF: {mof*100:.2f}% - F1: {f1*100:.2f}%")
+            logger.info(f"Video {video_id} | Accuracy (MoF): {mof_video*100:.2f}% | Accuracy (F1): {f1*100:.2f}% | Time: {(time.time()-time_s):.2f}s")
+        tq.set_postfix_str(f"MoF: {mof_video*100:.2f}% - F1: {f1*100:.2f}%")
         if f1 > 0.4:
             plot_abd_results(
                 similarity=similarity,
                 boundaries=boundaries,
-                pred_labels_mapped=mapped_preds,
+                pred_labels_mapped=remapped_preds,
                 gt_labels=gt_arr,
                 video_name=f"{dataset_name}-{video_id}"
             )
         
         history["video_id"].append(video_id)
         history["boundaries"].append((target_len,len(pred)))
-        history["MoF"].append(mof)
+        history["MoF"].append(mof_video)
         history["F1"].append(f1)
 
+    final_mof = global_mof.compute()
     print("\n=== Offline ABD — Dataset-level results ===")
-    print(f"  Mean MoF : {np.mean(history['MoF'])*100:.2f}%")
+    print(f"  Mean MoF : {final_mof*100:.2f}%")
     print(f"  Mean F1  : {np.mean(history['F1'])*100:.2f}%")
     
     return history
