@@ -11,7 +11,7 @@ from src.utils.visualization import plot_abd_results
 import time
 
 
-def run_offline_mode(dataset_name:str, boundaries_type:str, log=False):
+def run_offline_mode(dataset_name:str, boundaries_type:str, alpha:float=0.6, log=False):
 
     dataset_conf = config.getConfigYAML("config/dataset.yaml")
     if dataset_name == "breakfast":
@@ -41,7 +41,8 @@ def run_offline_mode(dataset_name:str, boundaries_type:str, log=False):
     }
 
     global_mof = GlobalMoF()
-    alpha = 0.6
+
+    alpha = alpha if alpha > 0 and alpha <= 1 else 0.6
 
     for item in tq:
         time_s = time.time()
@@ -55,11 +56,9 @@ def run_offline_mode(dataset_name:str, boundaries_type:str, log=False):
 
         dynamic_size = int(alpha * (target_len / K))
         
-        # Il kernel size per l'avg_pool1d deve essere un numero dispari
         if dynamic_size % 2 == 0:
             dynamic_size += 1
             
-        # Per sicurezza, evitiamo che in video microscopici la finestra diventi troppo piccola
         dynamic_size = max(3, dynamic_size)
         
         boundaries, similarity = abd.detect_boundaries(video_feature, dynamic_size, dynamic_size)

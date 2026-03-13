@@ -12,11 +12,11 @@ datasets:
       eval:
         kernel_size: 15
         window_size: 15
-        threshold_classes: 6
+        threshold_classes: 5
       mid:
         kernel_size: 15
         window_size: 15
-        threshold_classes: 6
+        threshold_classes: 5
   
   50salads:
     name: "50 Salads"

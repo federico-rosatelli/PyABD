@@ -49,7 +49,7 @@ class GlobalMoF:
 
 def calculate_f1(preds, targets):
     
-    return f1_score(targets, preds, average="weighted")
+    return f1_score(targets, preds)
 
 
     
