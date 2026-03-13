@@ -3,6 +3,7 @@ Action Boundary Detection Module
 """
 import torch
 import torch.nn.functional as F
+import numpy as np
 
 def smooth_features(features:torch.Tensor, kernel_size:int=15):
 
@@ -54,3 +55,69 @@ def detect_boundaries(video_feature:torch.Tensor, kernel_size:int=15, window_siz
             boundaries.append(t)
             
     return torch.tensor(boundaries), similarity
+
+
+class OnlineABDProcessor:
+    """
+    Online Action Boundary Detection Processor
+    """
+    def __init__(self, kernel_size: int = 15, window_size: int = 15):
+        self.kernel_size = kernel_size  # k + 1
+        self.window_size = window_size  # L
+        self.feature_buffer = []
+        self.smoothed_features = []
+        
+        self.similarities = []
+        self.thresholds = []
+        self.reject_reasons = [] 
+        self.boundaries = []
+        
+        self.current_t = 0
+        
+    def step(self, x_t: torch.Tensor):
+        self.feature_buffer.append(x_t)
+        if len(self.feature_buffer) > self.kernel_size:
+            self.feature_buffer.pop(0)
+            
+        g_t = torch.stack(self.feature_buffer).mean(dim=0)
+        self.smoothed_features.append(g_t)
+        
+        if len(self.smoothed_features) > 2:
+            self.smoothed_features.pop(0)
+            
+        boundary_detected_at = None
+        
+        if len(self.smoothed_features) == 2:
+            sim = F.cosine_similarity(
+                self.smoothed_features[0].unsqueeze(0),
+                self.smoothed_features[1].unsqueeze(0)
+            ).item()
+            self.similarities.append(sim)
+            
+            if len(self.similarities) > 1:
+                thr = float(np.percentile(self.similarities[:-1], 25))
+            else:
+                thr = None
+            self.thresholds.append(thr)
+            self.reject_reasons.append(None)
+            
+            L = self.window_size
+            if len(self.similarities) >= L:
+                window = self.similarities[-L:]
+                center_idx = L // 2
+                center_val = window[center_idx]
+                
+                if center_val == min(window):
+                    candidate_pos = len(self.similarities) - 1 - (L - 1 - center_idx)
+                    cand_thr = self.thresholds[candidate_pos]
+                    
+                    if cand_thr is None:
+                        self.reject_reasons[candidate_pos] = "warmup"
+                    elif center_val <= cand_thr:
+                        self.boundaries.append(candidate_pos)
+                        boundary_detected_at = candidate_pos
+                    else:
+                        self.reject_reasons[candidate_pos] = "threshold"
+                        
+        self.current_t += 1
+        return boundary_detected_at

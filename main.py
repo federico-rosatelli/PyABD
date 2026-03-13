@@ -13,9 +13,9 @@ def main(parsed_args):
         config.saveCSV(f"history_{parsed_args.dataset}.csv", history)
     
     if parsed_args.mode == "online":
-        online_mode.run_online_mode(parsed_args.dataset, log=True)
-    
-        
+        history = online_mode.run_online_mode(parsed_args.dataset, log=True)
+        config.saveCSV(f"history_{parsed_args.dataset}_online.csv", history)
+
 
 
 

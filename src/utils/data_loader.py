@@ -17,7 +17,7 @@ class BreakfastDataset:
                  split_name:str, 
                  streaming:bool, 
                  mode:str, 
-                 threshold_classes:int,
+                 boundaries=None,
                  writer_batch_size:int=1):
         
         self.name = name
@@ -29,7 +29,7 @@ class BreakfastDataset:
         self.writer_batch_size = writer_batch_size
         self.streaming = streaming
         self.mode = mode
-        self.threshold_classes = threshold_classes
+        #self.threshold_classes = threshold_classes
         self.dataset = self._load_br_dataset()
         pass
 

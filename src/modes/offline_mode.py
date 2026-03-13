@@ -41,6 +41,7 @@ def run_offline_mode(dataset_name:str, boundaries_type:str, log=False):
     }
 
     global_mof = GlobalMoF()
+    alpha = 0.6
 
     for item in tq:
         time_s = time.time()
@@ -51,8 +52,17 @@ def run_offline_mode(dataset_name:str, boundaries_type:str, log=False):
         
         video_feature = torch.tensor(features, dtype=torch.float32)
         target_len = video_feature.shape[0]
+
+        dynamic_size = int(alpha * (target_len / K))
         
-        boundaries, similarity = abd.detect_boundaries(video_feature, kernel_size, window_size)
+        # Il kernel size per l'avg_pool1d deve essere un numero dispari
+        if dynamic_size % 2 == 0:
+            dynamic_size += 1
+            
+        # Per sicurezza, evitiamo che in video microscopici la finestra diventi troppo piccola
+        dynamic_size = max(3, dynamic_size)
+        
+        boundaries, similarity = abd.detect_boundaries(video_feature, dynamic_size, dynamic_size)
         
         similarity = torch.cat([similarity, similarity[-1].unsqueeze(0)])
         
@@ -60,7 +70,7 @@ def run_offline_mode(dataset_name:str, boundaries_type:str, log=False):
 
         k_log = (k_log//2 * 1) if k_log >= K//2 else (k_log//2 * -1)
         
-        k_def = K + k_log
+        k_def = K #+ k_log
 
         
 

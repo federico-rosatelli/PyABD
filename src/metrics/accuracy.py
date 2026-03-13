@@ -29,8 +29,10 @@ class GlobalMoF:
 
     def update(self, mapped_preds, targets):
         
-        mapped_preds = mapped_preds.cpu().numpy()
-        targets = targets.cpu().numpy()
+        if isinstance(mapped_preds, torch.Tensor):
+            mapped_preds = mapped_preds.cpu().numpy()
+        if isinstance(targets, torch.Tensor):
+            targets = targets.cpu().numpy()
 
         self.total_correct += int(np.sum(mapped_preds == targets))
         self.total_frames  += len(targets)
