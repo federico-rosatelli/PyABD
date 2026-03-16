@@ -1,3 +1,4 @@
+import csv
 import math
 from tqdm import tqdm
 from src.utils import config
@@ -11,27 +12,9 @@ from src.utils.visualization import plot_abd_results
 import time
 
 
-def run_offline_mode(dataset_name:str, boundaries_type:str, alpha:float=0.6, log=False):
+def run_offline_mode(dataset, alpha:float, K:int):
 
-    dataset_conf = config.getConfigYAML("config/dataset.yaml")
-    if dataset_name == "breakfast":
-        br_conf = dataset_conf["datasets"]['breakfast']
-        dataset = BreakfastDataset(**br_conf).getDataset()
-    elif dataset_name == "50salads":
-        br_conf = dataset_conf["datasets"]['50salads']
-        dataset = SaladsDataset(br_conf['name'], br_conf['dataset_path'], br_conf["boundaries"][boundaries_type]['threshold_classes'])
-    
-    #bn_conf = config.getConfigYAML("config/boundaries.yaml")
-
-    kernel_size = br_conf["boundaries"][boundaries_type]['kernel_size']
-    window_size = br_conf["boundaries"][boundaries_type]['window_size']
-
-
-    if log:
-        logger  = config.getLogger("production")
-    K = dataset_conf["datasets"][dataset_name]["boundaries"][boundaries_type]['threshold_classes']
-    print(f"Running offline mode on {dataset_name} dataset with K={K} classes...")
-    tq = tqdm(dataset, desc=f"Processing dataset {dataset_name}", unit="video")
+    tq = tqdm(dataset, desc=f"Processing dataset", unit="video")
 
     history = {
         "video_id": [],
@@ -96,27 +79,58 @@ def run_offline_mode(dataset_name:str, boundaries_type:str, alpha:float=0.6, log
         f1 = calculate_f1(remapped_preds, gt_arr)
 
         
-        if log:
-            logger.info(f"Video {video_id} | Accuracy (MoF): {mof_video*100:.2f}% | Accuracy (F1): {f1*100:.2f}% | Time: {(time.time()-time_s):.2f}s")
         tq.set_postfix_str(f"MoF: {mof_video*100:.2f}% - F1: {f1*100:.2f}%")
-        if f1 > 0.4:
-            plot_abd_results(
-                similarity=similarity,
-                boundaries=boundaries,
-                pred_labels_mapped=remapped_preds,
-                gt_labels=gt_arr,
-                video_name=f"{dataset_name}-{video_id}"
-            )
+        # if f1 > 0.4:
+        #     plot_abd_results(
+        #         similarity=similarity,
+        #         boundaries=boundaries,
+        #         pred_labels_mapped=remapped_preds,
+        #         gt_labels=gt_arr,
+        #         video_name=f"{dataset_name}-{video_id}"
+        #     )
         
         history["video_id"].append(video_id)
         history["MoF"].append(mof_video)
         history["F1"].append(f1)
 
     final_mof = global_mof.compute()
-    print("\n=== Offline ABD — Dataset-level results ===")
-    print(f"  Mean MoF : {final_mof*100:.2f}%")
-    print(f"  Mean F1  : {np.mean(history['F1'])*100:.2f}%")
+    mean_f1 = np.mean(history['F1'])
+    # print("\n=== Offline ABD — Dataset-level results ===")
+    # print(f"  Mean MoF : {final_mof*100:.2f}%")
+    # print(f"  Mean F1  : {np.mean(history['F1'])*100:.2f}%")
     
-    return history
+    return final_mof, mean_f1, history
         
 
+
+def run_grid_search(dataset_name: str, boundaries_type: str, alphas: list, Ks: list, output_csv: str = "grid_search_results.csv"):
+
+    dataset_conf = config.getConfigYAML("config/dataset.yaml")
+    
+    if dataset_name == "breakfast":
+        br_conf = dataset_conf["datasets"]['breakfast']
+        dataset = BreakfastDataset(**br_conf).getDataset()
+    elif dataset_name == "50salads":
+        br_conf = dataset_conf["datasets"]['50salads']
+        dataset = SaladsDataset(br_conf['name'], br_conf['dataset_path'], br_conf["boundaries"][boundaries_type]['threshold_classes'])
+    else:
+        raise ValueError("Error Loading Dataset")
+        
+        
+    total_iters = len(alphas) * len(Ks)
+    
+    with open(output_csv, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(["Dataset", "Alpha", "K", "Mean_MoF", "Mean_F1"])
+        
+        with tqdm(total=total_iters, desc="Grid Search Progress") as pbar:
+            for alpha in alphas:
+                for K in Ks:
+                    mof, f1, _ = run_offline_mode(dataset, alpha, K)
+                    
+                    writer.writerow([dataset_name, alpha, K, f"{mof*100:.2f}", f"{f1*100:.2f}"])
+                    f.flush()
+                    
+                    pbar.set_postfix({"Alpha": alpha, "K": K, "MoF": f"{mof*100:.2f}%"})
+                    pbar.update(1)
+                    
