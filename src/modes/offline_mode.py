@@ -27,6 +27,8 @@ def run_offline_mode(dataset, alpha:float, K:int):
 
     alpha = alpha if alpha > 0 and alpha <= 1 else 0.6
 
+    times = []
+
     for item in tq:
         time_s = time.time()
 
@@ -73,10 +75,10 @@ def run_offline_mode(dataset, alpha:float, K:int):
         if len(gt_arr) != target_len:
             gt_arr = zoom(gt_arr, target_len / len(gt_arr), order=0)
 
-
         mof_video, remapped_preds = calculate_mof(preds_cut, gt_arr)
         global_mof.update(remapped_preds, gt_arr)
         f1 = calculate_f1(remapped_preds, gt_arr)
+        times.append(time.time() - time_s)
 
         
         tq.set_postfix_str(f"MoF: {mof_video*100:.2f}% - F1: {f1*100:.2f}%")
@@ -99,7 +101,7 @@ def run_offline_mode(dataset, alpha:float, K:int):
     # print(f"  Mean MoF : {final_mof*100:.2f}%")
     # print(f"  Mean F1  : {np.mean(history['F1'])*100:.2f}%")
     
-    return final_mof, mean_f1, history
+    return final_mof, mean_f1, sum(times)/len(times)
         
 
 
@@ -121,16 +123,17 @@ def run_grid_search(dataset_name: str, boundaries_type: str, alphas: list, Ks: l
     
     with open(output_csv, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        writer.writerow(["Dataset", "Alpha", "K", "Mean_MoF", "Mean_F1"])
+        writer.writerow(["Dataset", "Alpha", "K", "Mean_MoF", "Mean_F1", "Mean_Time"])
         
         with tqdm(total=total_iters, desc="Grid Search Progress") as pbar:
             for alpha in alphas:
                 for K in Ks:
-                    mof, f1, _ = run_offline_mode(dataset, alpha, K)
+                    pbar.set_postfix({"Alpha": alpha, "K": K})
+
+                    mof, f1, times = run_offline_mode(dataset, alpha, K)
                     
-                    writer.writerow([dataset_name, alpha, K, f"{mof*100:.2f}", f"{f1*100:.2f}"])
+                    writer.writerow([dataset_name, alpha, K, f"{mof*100:.2f}", f"{f1*100:.2f}", f"{times:.2f}"])
                     f.flush()
                     
-                    pbar.set_postfix({"Alpha": alpha, "K": K, "MoF": f"{mof*100:.2f}%"})
                     pbar.update(1)
                     

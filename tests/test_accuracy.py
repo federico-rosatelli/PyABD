@@ -12,5 +12,5 @@ def testBrakfast():
         boundaries_type="eval", 
         alphas=alphas_to_test, 
         Ks=ks_to_test,
-        output_csv="grid_search_breakfast_alpha_k.csv"
+        output_csv="grid_search_breakfast.csv"
     )
