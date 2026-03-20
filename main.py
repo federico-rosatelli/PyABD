@@ -9,17 +9,18 @@ from tests import test_accuracy
 
 
 def main(parsed_args):
-    # if parsed_args.mode == "offline":
-    #     history = offline_mode.run_offline_mode(parsed_args.dataset,parsed_args.boundaries, log=False)
-    #     config.saveCSV(f"history_{parsed_args.dataset}.csv", history)
-    
-    # if parsed_args.mode == "online":
-    #     history = online_mode.run_online_mode(parsed_args.dataset, log=True)
-    #     config.saveCSV(f"history_{parsed_args.dataset}_online.csv", history)
-    
     if parsed_args.test:
-        test_accuracy.testBrakfast()
-
+        if parsed_args.dataset == "breakfast":
+            test_accuracy.testBrakfast()
+        elif parsed_args.dataset == "50salads":
+            test_accuracy.test50Salads()
+    
+    if parsed_args.mode == "offline":
+        offline_mode.run_grid_search(parsed_args.dataset, parsed_args.boundaries, [0.6], [7])
+        pass
+    
+    if parsed_args.mode == "online":
+        test_accuracy.testOnlineMode(parsed_args.dataset)
 
 
 

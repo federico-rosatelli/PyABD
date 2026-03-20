@@ -12,9 +12,9 @@ from src.utils.visualization import plot_abd_results
 import time
 
 
-def run_offline_mode(dataset, alpha:float, K:int):
+def run_offline_mode(dataset, dataset_name:str ,alpha:float, K:int):
 
-    tq = tqdm(dataset, desc=f"Processing dataset", unit="video")
+    tq = tqdm(dataset, desc=f"Processing dataset {dataset_name}", unit="video")
 
     history = {
         "video_id": [],
@@ -82,14 +82,14 @@ def run_offline_mode(dataset, alpha:float, K:int):
 
         
         tq.set_postfix_str(f"MoF: {mof_video*100:.2f}% - F1: {f1*100:.2f}%")
-        # if f1 > 0.4:
-        #     plot_abd_results(
-        #         similarity=similarity,
-        #         boundaries=boundaries,
-        #         pred_labels_mapped=remapped_preds,
-        #         gt_labels=gt_arr,
-        #         video_name=f"{dataset_name}-{video_id}"
-        #     )
+        if f1 > 0.85:
+            plot_abd_results(
+                similarity=similarity,
+                boundaries=boundaries,
+                pred_labels_mapped=remapped_preds,
+                gt_labels=gt_arr,
+                video_name=f"{dataset_name}-{video_id}"
+            )
         
         history["video_id"].append(video_id)
         history["MoF"].append(mof_video)
@@ -120,7 +120,7 @@ def run_grid_search(dataset_name: str, boundaries_type: str, alphas: list, Ks: l
         
         
     total_iters = len(alphas) * len(Ks)
-    
+    print(f"Running Grid Search for Dataset: {dataset_name}")
     with open(output_csv, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(["Dataset", "Alpha", "K", "Mean_MoF", "Mean_F1", "Mean_Time"])
@@ -130,7 +130,7 @@ def run_grid_search(dataset_name: str, boundaries_type: str, alphas: list, Ks: l
                 for K in Ks:
                     pbar.set_postfix({"Alpha": alpha, "K": K})
 
-                    mof, f1, times = run_offline_mode(dataset, alpha, K)
+                    mof, f1, times = run_offline_mode(dataset, dataset_name, alpha, K)
                     
                     writer.writerow([dataset_name, alpha, K, f"{mof*100:.2f}", f"{f1*100:.2f}", f"{times:.2f}"])
                     f.flush()

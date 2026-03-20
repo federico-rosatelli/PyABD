@@ -52,7 +52,8 @@ def detect_boundaries(video_feature:torch.Tensor, kernel_size:int=15, window_siz
         min_val = torch.min(local_window)
         
         if similarity[t] == min_val:
-            boundaries.append(t)
+            if len(boundaries) == 0 or t - boundaries[-1] > 1:
+                boundaries.append(t)
             
     return torch.tensor(boundaries), similarity
 
@@ -61,9 +62,15 @@ class OnlineABDProcessor:
     """
     Online Action Boundary Detection Processor
     """
-    def __init__(self, kernel_size: int = 15, window_size: int = 15):
+    def __init__(self, kernel_size: int = 15, 
+                 window_size: int = 15, 
+                 min_segment_frames: int = 25, 
+                 semantic_gate_value: float = 0.9987):
+        
         self.kernel_size = kernel_size  # k + 1
         self.window_size = window_size  # L
+        self.min_segment_frames = min_segment_frames
+        self.semantic_gate_value = semantic_gate_value
         self.feature_buffer = []
         self.smoothed_features = []
         
@@ -111,13 +118,15 @@ class OnlineABDProcessor:
                     candidate_pos = len(self.similarities) - 1 - (L - 1 - center_idx)
                     cand_thr = self.thresholds[candidate_pos]
                     
-                    if cand_thr is None:
-                        self.reject_reasons[candidate_pos] = "warmup"
-                    elif center_val <= cand_thr:
+                    if center_val > cand_thr:
+                        self.reject_reasons[candidate_pos] = "threshold"
+                    elif center_val > self.semantic_gate_value:
+                        self.reject_reasons[candidate_pos] = "semantic_gate"
+                    elif (self.boundaries and (candidate_pos - self.boundaries[-1]) < self.min_segment_frames):
+                        self.reject_reasons[candidate_pos] = "dead_zone"
+                    else:
                         self.boundaries.append(candidate_pos)
                         boundary_detected_at = candidate_pos
-                    else:
-                        self.reject_reasons[candidate_pos] = "threshold"
                         
         self.current_t += 1
         return boundary_detected_at
