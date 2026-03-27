@@ -49,10 +49,8 @@ def run_offline_mode(dataset, dataset_name:str ,alpha:float, K:int):
         boundaries, similarity = abd.detect_boundaries(video_feature, dynamic_size, dynamic_size)
         
         similarity = torch.cat([similarity, similarity[-1].unsqueeze(0)])
-        
-        k_log = int(math.log(len(boundaries)+1))
 
-        k_log = (k_log//2 * 1) if k_log >= K//2 else (k_log//2 * -1)
+        # k_log = dynamic_K(similarity, K)
         
         k_def = K #+ k_log
 
@@ -136,4 +134,21 @@ def run_grid_search(dataset_name: str, boundaries_type: str, alphas: list, Ks: l
                     f.flush()
                     
                     pbar.update(1)
-                    
+
+
+
+
+def dynamic_K(similarity: torch.Tensor, K: int):
+    b_log = math.log(len(similarity)+1)
+    
+    k_log = (b_log - K)
+    
+    if isinstance(similarity, torch.Tensor):
+        M_v, m_v, me_v = similarity.max(), similarity.min(), similarity.mean()
+    else:
+        M_v, m_v, me_v = max(similarity), min(similarity), np.mean(similarity)
+
+    x = (M_v - m_v) / (me_v - m_v) if me_v != m_v else 0
+
+    return int(k_log*x)
+
