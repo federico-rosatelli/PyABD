@@ -14,8 +14,8 @@ datasets:
         window_size: 15
         threshold_classes: 5
       mid:
-        kernel_size: 15
-        window_size: 15
+        kernel_size: 11
+        window_size: 11
         threshold_classes: 5
   
   50salads:

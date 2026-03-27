@@ -11,7 +11,7 @@ from src.metrics.accuracy import calculate_mof, GlobalMoF, calculate_f1
 from src.utils.visualization import plot_online_abd_results
 
 
-def run_online_mode(dataset_name: str, boundaries_type: str = "eval", log: bool = False):
+def run_online_mode(dataset_name: str, boundaries_type: str = "eval", log: bool = False, visual: bool = False):
     
     dataset_conf = config.getConfigYAML("config/dataset.yaml")
     
@@ -87,7 +87,7 @@ def run_online_mode(dataset_name: str, boundaries_type: str = "eval", log: bool 
             
         tq.set_postfix_str(f"MoF: {mof_video*100:.2f}% - F1: {f1*100:.2f}%")
         
-        if f1 > to_visual:
+        if f1 > to_visual and visual:
             plot_online_abd_results(
                 similarities=processor.similarities,
                 thresholds=processor.thresholds,

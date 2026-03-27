@@ -1,26 +1,25 @@
 import warnings
 warnings.filterwarnings("ignore")
 import argparse
-import src.modes.offline_mode as offline_mode
-import src.modes.online_mode as online_mode
-from src.utils import config
 from tests import test_accuracy
 
 
 
 def main(parsed_args):
     if parsed_args.test:
-        if parsed_args.dataset == "breakfast":
-            test_accuracy.testBrakfast()
-        elif parsed_args.dataset == "50salads":
-            test_accuracy.test50Salads()
-    
+        if parsed_args.mode == "offline":
+            test_accuracy.testOfflineMode(parsed_args.dataset)
+        if parsed_args.mode == "online":
+            test_accuracy.testOnlineMode(parsed_args.dataset)
+        return
+
     if parsed_args.mode == "offline":
-        offline_mode.run_grid_search(parsed_args.dataset, parsed_args.boundaries, [0.6], [7])
-        pass
+        test_accuracy.testOfflineMode(parsed_args.dataset, 0.6, 7)
+        return
     
     if parsed_args.mode == "online":
         test_accuracy.testOnlineMode(parsed_args.dataset)
+        return
 
 
 
